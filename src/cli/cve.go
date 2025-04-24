@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -18,11 +19,15 @@ var cve = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
+
 		if len(args) < 1 {
 			logrus.Fatalln("Missing CVE-ID argument. Please provide at least one CVE-ID.")
 		}
 		logrus.Infoln("CVE Provided: ", args)
 
+		if match, _ := regexp.MatchString("^CVE-\\d{4}-\\d{4,}$", args[0]); !match {
+			logrus.Fatalln("CVE-ID is invalid")
+		}
 		resp, err := http.Get("https://cve.circl.lu/api/vulnerability/" + args[0])
 		if err != nil {
 			logrus.Fatalln(err)
