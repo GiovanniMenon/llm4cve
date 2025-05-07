@@ -1,6 +1,6 @@
 package main
 
-import "LLM4CVE/src/cli"
+import "llm4cve/src/cli"
 
 func main() {
 	cli.Execute()

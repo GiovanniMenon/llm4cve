@@ -1,11 +1,11 @@
 package cli
 
 import (
-	"LLM4CVE/src/model"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
+	"llm4cve/src/model"
 	"log"
 	"net/http"
 	"os"

@@ -1,4 +1,4 @@
-module LLM4CVE
+module llm4cve
 
 go 1.24.1
 
