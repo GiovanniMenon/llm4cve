@@ -29,14 +29,20 @@ var (
 			if len(args) < 1 {
 				logrus.Fatalln("Missing argument. Please provide at least one argument between CVE-ID and CAPEC-ID.")
 			}
-			//var cves []string
+			var cves []string
 			for _, arg := range args {
 				if match, _ := regexp.MatchString(`^CVE-\d{4}-\d{4,}$`, args[0]); !match {
 					logrus.Fatalln("Invalid CVE-ID format. Please provide a valid CVE-ID.")
 				}
 
-				cvePath := "cves/" + strings.Split(arg, "-")[1] + "/" + strings.Split(arg, "-")[2][0:2] + "xxx"
-				logrus.Print(cvePath)
+				cvePath := ""
+				if len(strings.Split(arg, "-")[2]) == 4 {
+					cvePath = "cves/" + strings.Split(arg, "-")[1] + "/" + strings.Split(arg, "-")[2][0:1] + "xxx"
+				} else {
+					cvePath = "cves/" + strings.Split(arg, "-")[1] + "/" + strings.Split(arg, "-")[2][0:2] + "xxx"
+				}
+
+				//
 				err := filepath.WalkDir(cvePath, func(path string, d fs.DirEntry, err error) error {
 					if err != nil {
 						return err
@@ -49,12 +55,38 @@ var (
 				})
 
 				if err == nil {
-					logrus.Warning("CVE %s not found ", arg)
+					logrus.Warningf("CVE %s not found ", arg)
+					continue
 				}
 
 				if err.Error() != "found" {
-					logrus.Warningf("Error while reading the directory: %w ", err)
+					logrus.Warningf("Error while reading the directory: %s ", err)
+					continue
 				}
+
+				logrus.Debug("CVE found in the database: ", cvePath)
+
+				// TODO Parser
+
+				var cve CVE
+
+				data, err := os.ReadFile(cvePath)
+				if err != nil {
+					logrus.Warning("Error reading file :", arg)
+					continue
+				}
+
+				if err := json.Unmarshal(data, &cve); err != nil {
+					logrus.Errorf("Error reading package.json: %s ", err)
+					continue
+				}
+
+				output, err := json.MarshalIndent(cve, "", "  ")
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				cves = append(cves, string(output))
 
 			}
 		},
