@@ -111,10 +111,19 @@ func initProject() {
 		logrus.Info("Selected Asset: ", release.Assets[0].BrowserDownloadURL)
 
 		// Missing logic for downloading -- Using wget
-		cmd := exec.Command("wget", "-q", "--show-progress", release.Assets[0].BrowserDownloadURL)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		wget := exec.Command("wget", "-q", "--show-progress", release.Assets[0].BrowserDownloadURL)
+		wget.Stdout = os.Stdout
+		wget.Stderr = os.Stderr
+		if err := wget.Run(); err != nil {
+			log.Fatalf("Error downloading Database %s ", err)
+		}
+
+		// Unzip
+
+		unzip := exec.Command("unzip", release.Assets[0].Name)
+		unzip.Stdout = os.Stdout
+		unzip.Stderr = os.Stderr
+		if err := unzip.Run(); err != nil {
 			log.Fatalf("Error downloading Database %s ", err)
 		}
 
