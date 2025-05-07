@@ -1,91 +1,59 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/ollama"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
-	"strings"
+	"os/exec"
+
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
 	individual bool
 	verbose    bool
 	rootCmd    = &cobra.Command{
-		Use:   "llm4cve [CVE_ID] [CAPEC_ID]",
-		Short: "",
-		Long:  "",
+		Use:   "llm4cve [CVE_ID]",
+		Short: "llm4cve is a CLI tool that analyzes and summarizes CVEs using local LLMs.",
+		Long:  "llm4cve is a CLI tool that analyzes and summarizes CVEs using local LLMs.",
 		Args:  cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
 				logrus.Fatalln("Missing argument. Please provide at least one argument between CVE-ID and CAPEC-ID.")
 			}
-			var responses []string
-			for _, arg := range args {
+			// var responses []string
+			// for _, arg := range args {
+			// 	if match, _ := regexp.MatchString(`^CVE-\d{4}-\d{4,}$`, args[0]); !match {
+			// 		logrus.Fatalln("Invalid CVE-ID format. Please provide a valid CVE-ID.")
+			// 	}
 
-				var url string
+			// var url = "https://cve.circl.lu/api/vulnerability/" + arg
 
-				switch {
-				case regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`).MatchString(arg):
-					url = "https://cve.circl.lu/api/vulnerability/" + arg
+			// logrus.Debug(url)
 
-				case regexp.MustCompile(`^CAPEC-\d+$`).MatchString(arg):
+			// resp, err := http.Get(url)
+			// if err != nil {
+			// 	logrus.Errorf("HTTP request failed for %s: %v", arg, err)
+			// 	continue
+			// }
+			// defer resp.Body.Close()
+			// if resp.StatusCode != http.StatusOK {
+			// 	logrus.Errorf("Failed request for %s: %v", arg, resp.Status)
+			// 	continue
+			// }
 
-					url = "https://cve.circl.lu/api/capec/" + arg
-				default:
-					logrus.Warnf("Skipping invalid ID: %s", arg)
-					continue
-				}
+			// bodyBytes, err := ioutil.ReadAll(resp.Body)
+			// if err != nil {
+			// 	logrus.Errorf("Failed reading response body for %s: %v", arg, err)
+			// 	continue
+			// }
 
-				logrus.Debug(url)
+			// responses = append(responses, string(bodyBytes))
 
-				resp, err := http.Get(url)
-				if err != nil {
-					logrus.Errorf("HTTP request failed for %s: %v", arg, err)
-					continue
-				}
-				defer resp.Body.Close()
-
-				if resp.StatusCode != http.StatusOK {
-					logrus.Errorf("Failed request for %s: %v", arg, resp.Status)
-					continue
-				}
-
-				bodyBytes, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					logrus.Errorf("Failed reading response body for %s: %v", arg, err)
-					continue
-				}
-
-				responses = append(responses, string(bodyBytes))
-
-			}
-			llm, err := ollama.New(
-				ollama.WithModel("deepseek-R1:14B"),
-				ollama.WithServerURL(""),
-				ollama.WithSystemPrompt(`You are an assistant that receives CVEs and CAPECs and summarizes them,
-				providing important information about this in a complete summary.`),
-			)
-			if err != nil {
-				log.Fatal(err)
-			}
-			ctx := context.Background()
-			_, err = llm.Call(ctx, string(strings.Join(responses, "\n")),
-				llms.WithTemperature(0.8),
-				llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-					fmt.Print(string(chunk))
-					return nil
-				}),
-			)
-
+			// 	}
 		},
 	}
 )
@@ -140,12 +108,21 @@ func initProject() {
 		}
 
 		logrus.Debugf("Downloading last CVEs database: %s", release.TagName)
-		// logrus.Info("Selected Asset: ", release.Assets[0].BrowserDownloadURL)
+		logrus.Info("Selected Asset: ", release.Assets[0].BrowserDownloadURL)
 
 		// Missing logic for downloading -- Using wget
+		cmd := exec.Command("wget", "-q", "--show-progress", release.Assets[0].BrowserDownloadURL)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("Error downloading Database %s ", err)
+		}
+
 	}
 
 	logrus.Info("Initialized project")
+
+	logrus.Fatal("Test")
 
 }
 
