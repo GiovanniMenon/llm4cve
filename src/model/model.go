@@ -3,9 +3,11 @@ package model
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/glamour"
+	"github.com/sirupsen/logrus"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
 )
@@ -32,10 +34,12 @@ Provide a clear, concise, and technically-oriented summary that includes:
 Do not describe the JSON structure or include phrases like “this JSON represents…”. Focus strictly on the CVE content.
 `
 
-func Analysis(cves []string) error {
+const url = "http://172.20.10.8:11434"
+
+func Analysis(cves []string, o bool) error {
 	llm, err := ollama.New(
 		ollama.WithModel("deepseek-r1:14b"),
-		ollama.WithServerURL("http://172.24.1.8:11434"),
+		ollama.WithServerURL(url),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to contact LLM: %w", err)
@@ -48,12 +52,12 @@ func Analysis(cves []string) error {
 	}
 
 	var buffer strings.Builder
-
+	text := ""
 	_, err = llm.GenerateContent(ctx, content,
 		llms.WithTemperature(0.8),
 		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 			buffer.Write(chunk)
-
+			text += string(chunk)
 			for {
 				content := buffer.String()
 				if idx := strings.Index(content, "\n\n"); idx != -1 {
@@ -91,13 +95,29 @@ func Analysis(cves []string) error {
 		}
 	}
 
+	if o {
+
+		logrus.Debug("Writing output file")
+		file, err := os.Create("output.md")
+		if err != nil {
+			return fmt.Errorf("Error creating file: %w ", err)
+		}
+		defer file.Close()
+
+		_, err = file.WriteString(text)
+		if err != nil {
+			return fmt.Errorf("Error writing to file: %w ", err)
+		}
+
+		logrus.Infoln("Output file: /output.md")
+	}
 	return nil
 }
 
 func Summarizes(cve string) (string, error) {
 	llm, err := ollama.New(
 		ollama.WithModel("llama3.2"),
-		ollama.WithServerURL("http://172.24.1.8:11434"),
+		ollama.WithServerURL(url),
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to contact LLM: %w ", err)

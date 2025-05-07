@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	individual bool
+	OutputFile bool
 	verbose    bool
 	rootCmd    = &cobra.Command{
 		Use:   "llm4cve [CVE_ID]",
@@ -31,7 +31,7 @@ var (
 				logrus.Fatalln("Missing argument. Please provide at least one argument CVE-ID.")
 			}
 
-			logrus.Println("Cve :", args)
+			logrus.Println("Initialization of", strings.Join(args, ", "))
 			var cves []string
 			for _, arg := range args {
 				if match, _ := regexp.MatchString(`^CVE-\d{4}-\d{4,}$`, arg); !match {
@@ -68,9 +68,7 @@ var (
 					continue
 				}
 
-				logrus.Debug("CVE found in the database: ", cvePath)
-
-				// TODO Parser
+				logrus.Debugf("%s file path: %s ", arg, cvePath)
 
 				data, err := os.ReadFile(cvePath)
 				if err != nil {
@@ -78,13 +76,15 @@ var (
 					continue
 				}
 
+				// TODO Parser
 				// Bad Answer if parsed
 				// var cve CVE
 				// if err := json.Unmarshal(data, &cve); err != nil {
 				// 	logrus.Errorf("Error reading package.json: %s ", err)
 				// 	continue
 				// }
-				logrus.Infoln("Summarizing: ", arg)
+
+				logrus.Infoln("Fetching", arg)
 				short_cve, err := model.Summarizes(string(data))
 				if err != nil {
 					logrus.Error(err)
@@ -93,11 +93,9 @@ var (
 				logrus.Debugln(short_cve)
 				cves = append(cves, string(short_cve))
 
-				// fmt.Println(short_cve)
-
 			}
-			logrus.Infoln("Output...")
-			model.Analysis(cves)
+			logrus.Infoln("Summarizing CVEs")
+			model.Analysis(cves, OutputFile)
 		},
 	}
 )
@@ -113,7 +111,7 @@ func init() {
 	cobra.OnInitialize(initProject)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display additional information")
-	rootCmd.PersistentFlags().BoolVarP(&individual, "individual", "i", false, "Compute each vulnerability individually and provide response in a file.")
+	rootCmd.PersistentFlags().BoolVarP(&OutputFile, "output", "o", false, "/output.md is created with the output")
 }
 
 func initProject() {
