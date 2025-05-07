@@ -7,11 +7,11 @@ Given a CVE (or a list) the system generate a summary of their description.
 
 ```go
 // go run main.go -h
- _ _           _  _                  
-| | |_ __ ___ | || |   _____   _____ 
-| | | '_ ' _ \| || |_ / __\ \ / / _ \
-| | | | | | | |__   _| (__ \ V /  __/
-|_|_|_| |_| |_|  |_|  \___| \_/ \___|
+`  _ _           _  _                  
+  | | |_ __ ___ | || |   _____   _____ 
+  | | | '_ ' _ \| || |_ / __\ \ / / _ \
+  | | | | | | | |__   _| (__ \ V /  __/
+  |_|_|_| |_| |_|  |_|  \___| \_/ \___|`
 llm4cve is a CLI tool that analyzes and summarizes CVEs using local LLMs.
 
 Usage:
