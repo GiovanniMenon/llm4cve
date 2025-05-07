@@ -3,7 +3,7 @@ module LLM4CVE
 go 1.24.1
 
 require (
-	github.com/rosbit/gnet v0.2.0
+	github.com/charmbracelet/glamour v0.10.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/tmc/langchaingo v0.1.13
@@ -14,7 +14,6 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
-	github.com/charmbracelet/glamour v0.10.0 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
 	github.com/charmbracelet/x/ansi v0.8.0 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
@@ -23,21 +22,15 @@ require (
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
-	github.com/hahnicity/go-wget v0.0.0-20130821055227-3e7ca2f20ef2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/laher/uggo v0.0.0-20140418102112-0ad25fe11c5b // indirect
-	github.com/laher/wget-go v0.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
-	github.com/mroth/weightedrand v0.4.1 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.6 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/rosbit/go-wget v1.5.0 // indirect
-	github.com/rosbit/reader-logger v0.1.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect

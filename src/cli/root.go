@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"LLM4CVE/src/model"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,12 +28,15 @@ var (
 		Args:  cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
-				logrus.Fatalln("Missing argument. Please provide at least one argument between CVE-ID and CAPEC-ID.")
+				logrus.Fatalln("Missing argument. Please provide at least one argument CVE-ID.")
 			}
+
+			logrus.Println("Cve :", args)
 			var cves []string
 			for _, arg := range args {
-				if match, _ := regexp.MatchString(`^CVE-\d{4}-\d{4,}$`, args[0]); !match {
-					logrus.Fatalln("Invalid CVE-ID format. Please provide a valid CVE-ID.")
+				if match, _ := regexp.MatchString(`^CVE-\d{4}-\d{4,}$`, arg); !match {
+					logrus.Error("Invalid CVE-ID format : ", arg)
+					continue
 				}
 
 				cvePath := ""
@@ -68,27 +72,32 @@ var (
 
 				// TODO Parser
 
-				var cve CVE
-
 				data, err := os.ReadFile(cvePath)
 				if err != nil {
 					logrus.Warning("Error reading file :", arg)
 					continue
 				}
 
-				if err := json.Unmarshal(data, &cve); err != nil {
-					logrus.Errorf("Error reading package.json: %s ", err)
+				// Bad Answer if parsed
+				// var cve CVE
+				// if err := json.Unmarshal(data, &cve); err != nil {
+				// 	logrus.Errorf("Error reading package.json: %s ", err)
+				// 	continue
+				// }
+				logrus.Infoln("Summarizing: ", arg)
+				short_cve, err := model.Summarizes(string(data))
+				if err != nil {
+					logrus.Error(err)
 					continue
 				}
+				logrus.Debugln(short_cve)
+				cves = append(cves, string(short_cve))
 
-				output, err := json.MarshalIndent(cve, "", "  ")
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				cves = append(cves, string(output))
+				// fmt.Println(short_cve)
 
 			}
+			logrus.Infoln("Output...")
+			model.Analysis(cves)
 		},
 	}
 )
@@ -173,9 +182,10 @@ func initProject() {
 		}
 
 		// TODO: Add update logic
+
 	}
 
-	logrus.Info("Project Initialized")
+	logrus.Debug("Database Initialized")
 
 }
 

@@ -11,37 +11,45 @@ import (
 )
 
 const SystemPrompt = `
-You are a cybersecurity assistant. Your task is to analyze and summarize one or more CVEs (Common Vulnerabilities and Exposures).
+Carefully analyze the content of the following text related to single or multiple CVE (Common Vulnerabilities and Exposures). Ignore the structure or formatting of the JSON itself and focus entirely on the technical and semantic details of the vulnerability.
 
-For each CVE provided:
-- Summarize the vulnerability in plain language.
-- Highlight the affected software or system.
-- Describe the impact (e.g., data loss, privilege escalation).
-- Mention the severity if available (e.g., CVSS score or rating).
-- Note any known exploits or mitigation steps.
+Provide a clear, concise, and technically-oriented summary that includes:
 
-If multiple CVEs are provided:
-- Identify any common components, attack surfaces, or affected systems.
-- Assess whether the vulnerabilities could be chained or combined.
-- Summarize the overall risk or attack potential if exploited together.
+    A natural language description of the vulnerability
 
-Be concise, accurate, and structured.
+    The affected products and versions
+
+    The vulnerability mechanism (e.g., race condition, buffer overflow, etc.)
+
+    The security impact (e.g., privilege escalation, remote code execution, auth bypass, etc.)
+
+    The severity level (e.g., CVSS score, textual severity if available)
+
+    Any known mitigations or patches
+
+    Any additional details relevant to a security analyst
+
+Do not describe the JSON structure or include phrases like “this JSON represents…”. Focus strictly on the CVE content.
 `
 
 func Analysis(cves []string) error {
 	llm, err := ollama.New(
-		ollama.WithModel("llama3.2"),
-		ollama.WithServerURL("http://127.0.0.1:11434"),
-		ollama.WithSystemPrompt(SystemPrompt),
+		ollama.WithModel("deepseek-r1:14b"),
+		ollama.WithServerURL("http://172.24.1.8:11434"),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to contact LLM: %w", err)
 	}
 
 	ctx := context.Background()
+	content := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, SystemPrompt),
+		llms.TextParts(llms.ChatMessageTypeHuman, strings.Join(cves, "\n------------------------------\n")),
+	}
+
 	var buffer strings.Builder
 
-	_, err = llm.Call(ctx, strings.Join(cves, "\n"),
+	_, err = llm.GenerateContent(ctx, content,
 		llms.WithTemperature(0.8),
 		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 			buffer.Write(chunk)
@@ -84,4 +92,34 @@ func Analysis(cves []string) error {
 	}
 
 	return nil
+}
+
+func Summarizes(cve string) (string, error) {
+	llm, err := ollama.New(
+		ollama.WithModel("llama3.2"),
+		ollama.WithServerURL("http://172.24.1.8:11434"),
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to contact LLM: %w ", err)
+	}
+
+	ctx := context.Background()
+
+	content := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, "Your job is to summarize the given JSON vulnerability in a single continuous text string. Do not exclude or alter any data. Do not separate into paragraphs or bullet points. The result must be a flat, plain-text sentence-style summary containing every information."),
+		llms.TextParts(llms.ChatMessageTypeHuman, cve),
+	}
+	text := ""
+	completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+		//fmt.Print(string(chunk))
+		text += string(chunk)
+		return nil
+	}))
+	_ = completion
+
+	if err != nil {
+		return "", fmt.Errorf("LLM call failed: %w ", err)
+	}
+
+	return text, nil
 }
