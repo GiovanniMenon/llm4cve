@@ -35,19 +35,22 @@ go build
 ```
 
 
-### Tool Used
+### Tools and Technologies
 
 - Langchain Framework
-- Ollama *(DeepSeek, llama 3.1)*
+- Ollama *(DeepSeek, llama 3.2)*
 - Go 
 
 ### Future Work 
 
-- [ ] Url, Output File Path and Model as CLI Flags;
-- [ ] Add Support for CWE, Capec;
-- [ ] Add different Database Source;
+- [ ] Custom URL for Ollama as flag
+- [ ] Custom output file as flag
+- [ ] Model choice as flag
+- [ ] Add Support for CWE, Capec
+- [ ] Add different Database Source
+
+### Authors
 ```
-# Authors
 @GiovanniMenon
 @NicoloPellegrinelli
 ```
