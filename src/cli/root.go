@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -122,4 +123,38 @@ func initProject() {
 		TimestampFormat: "2006-01-02 15:04:05",
 		FullTimestamp:   true,
 	})
+
+	logrus.Debug("Checking CVEs Database")
+	if _, err := os.Stat("cves"); os.IsNotExist(err) {
+		logrus.Warn("Database not found")
+
+		resp, err := http.Get("https://api.github.com/repos/CVEProject/cvelistV5/releases/latest")
+		if err != nil {
+			logrus.Fatalf("API error: %s", err)
+		}
+		defer resp.Body.Close()
+
+		var release Release
+		if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+			log.Fatalf("Errore parsing JSON: %v", err)
+		}
+
+		logrus.Debugf("Downloading last CVEs database: %s", release.TagName)
+		// logrus.Info("Selected Asset: ", release.Assets[0].BrowserDownloadURL)
+
+		// Missing logic for downloading -- Using wget
+	}
+
+	logrus.Info("Initialized project")
+
+}
+
+type Release struct {
+	TagName string  `json:"tag_name"`
+	Assets  []Asset `json:"assets"`
+}
+
+type Asset struct {
+	Name               string `json:"name"`
+	BrowserDownloadURL string `json:"browser_download_url"`
 }

@@ -33,3 +33,6 @@ dist/
 *.swo
 .DS_Store
 Thumbs.db
+
+# CVEs Database
+cves/
