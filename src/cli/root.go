@@ -2,11 +2,16 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,36 +29,34 @@ var (
 			if len(args) < 1 {
 				logrus.Fatalln("Missing argument. Please provide at least one argument between CVE-ID and CAPEC-ID.")
 			}
-			// var responses []string
-			// for _, arg := range args {
-			// 	if match, _ := regexp.MatchString(`^CVE-\d{4}-\d{4,}$`, args[0]); !match {
-			// 		logrus.Fatalln("Invalid CVE-ID format. Please provide a valid CVE-ID.")
-			// 	}
+			//var cves []string
+			for _, arg := range args {
+				if match, _ := regexp.MatchString(`^CVE-\d{4}-\d{4,}$`, args[0]); !match {
+					logrus.Fatalln("Invalid CVE-ID format. Please provide a valid CVE-ID.")
+				}
 
-			// var url = "https://cve.circl.lu/api/vulnerability/" + arg
+				cvePath := "cves/" + strings.Split(arg, "-")[1] + "/" + strings.Split(arg, "-")[2][0:2] + "xxx"
+				logrus.Print(cvePath)
+				err := filepath.WalkDir(cvePath, func(path string, d fs.DirEntry, err error) error {
+					if err != nil {
+						return err
+					}
+					if !d.IsDir() && filepath.Base(path) == arg+".json" {
+						cvePath = path
+						return errors.New("found")
+					}
+					return nil
+				})
 
-			// logrus.Debug(url)
+				if err == nil {
+					logrus.Warning("CVE %s not found ", arg)
+				}
 
-			// resp, err := http.Get(url)
-			// if err != nil {
-			// 	logrus.Errorf("HTTP request failed for %s: %v", arg, err)
-			// 	continue
-			// }
-			// defer resp.Body.Close()
-			// if resp.StatusCode != http.StatusOK {
-			// 	logrus.Errorf("Failed request for %s: %v", arg, resp.Status)
-			// 	continue
-			// }
+				if err.Error() != "found" {
+					logrus.Warningf("Error while reading the directory: %w ", err)
+				}
 
-			// bodyBytes, err := ioutil.ReadAll(resp.Body)
-			// if err != nil {
-			// 	logrus.Errorf("Failed reading response body for %s: %v", arg, err)
-			// 	continue
-			// }
-
-			// responses = append(responses, string(bodyBytes))
-
-			// 	}
+			}
 		},
 	}
 )
@@ -107,8 +110,8 @@ func initProject() {
 			log.Fatalf("Errore parsing JSON: %v", err)
 		}
 
-		logrus.Debugf("Downloading last CVEs database: %s", release.TagName)
-		logrus.Info("Selected Asset: ", release.Assets[0].BrowserDownloadURL)
+		logrus.Infof("Downloading last CVEs database: %s", release.TagName)
+		logrus.Debug("Selected Asset: ", release.Assets[0].BrowserDownloadURL)
 
 		// Missing logic for downloading -- Using wget
 		wget := exec.Command("wget", "-q", "--show-progress", release.Assets[0].BrowserDownloadURL)
@@ -120,18 +123,27 @@ func initProject() {
 
 		// Unzip
 
-		unzip := exec.Command("unzip", release.Assets[0].Name)
-		unzip.Stdout = os.Stdout
-		unzip.Stderr = os.Stderr
+		logrus.Debug("Extracting CVEs database ")
+		unzip := exec.Command("unzip", "-o", release.Assets[0].Name)
 		if err := unzip.Run(); err != nil {
-			log.Fatalf("Error downloading Database %s ", err)
+			log.Fatalf("Error unzip Database %s ", err)
+		}
+		unzip = exec.Command("unzip", "-o", "cves.zip")
+		if err := unzip.Run(); err != nil {
+			log.Fatalf("Error unzip Database %s ", err)
 		}
 
+		if err = os.Remove(release.Assets[0].Name); err != nil {
+			logrus.Error(err)
+		}
+		if err = os.Remove("cves.zip"); err != nil {
+			logrus.Error(err)
+		}
+
+		// TODO: Add update logic
 	}
 
-	logrus.Info("Initialized project")
-
-	logrus.Fatal("Test")
+	logrus.Info("Project Initialized")
 
 }
 
