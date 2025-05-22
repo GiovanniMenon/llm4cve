@@ -42,9 +42,9 @@ Do not describe the JSON structure or include phrases like “this JSON represen
 
 var ollamaURL string
 
-var analysisModel string = "deepseek-r1:14b"
+var analysisModel string
 
-var availableModels = []string {}
+var availableModels = []string{}
 
 func SetURL(u string) error {
 	parsedURL, err := url.ParseRequestURI(u)
@@ -53,7 +53,7 @@ func SetURL(u string) error {
 	}
 
 	ollamaURL = parsedURL.String()
-	
+
 	err = GetAvailableModels()
 	if err != nil {
 		return fmt.Errorf("%w", err)
@@ -69,12 +69,12 @@ func GetAvailableModels() error {
 
 	resp, err := client.Get(ollamaURL + "/api/tags")
 	if err != nil {
-		return fmt.Errorf("Failed to connect to LLM API: %w", err)
+		return fmt.Errorf("Failed to connect to LLM API ")
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK { 
-		return fmt.Errorf("Failed to get available models: %s", resp.Status)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to get available models: %s ", resp.Status)
 	}
 
 	var result struct {
@@ -207,7 +207,6 @@ func Summary(cve string) (string, error) {
 	}
 	text := ""
 	completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-		//fmt.Print(string(chunk))
 		text += string(chunk)
 		return nil
 	}))

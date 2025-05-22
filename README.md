@@ -15,21 +15,23 @@ Given a CVE (or a list) the system generate a summary of their description.
 llm4cve is a CLI tool that analyzes and summarizes CVEs using local LLMs.
 
 Usage:
-  llm4cve [CVE_ID] [flags]
+llm4cve [CVE_ID] [flags]
 
 Flags:
-  -h, --help         help for llm4cve
-  -o, --output       file output.md is created with the output
-  -v, --verbose      Display additional information
+-h, --help                help for llm4cve
+-m, --model string        Chose LLM model for analysis ['llama3.2','deepseek-r1:14b'] (default "deepseek-r1:14b")
+-u, --ollama-url string   Use custom URL for Ollama API (default "http://127.0.0.1:11434")
+-o, --output              /output.md is created with the output
+-v, --verbose             Display additional information
 ```
 
 Example of usage :
-```go
-// Run
-go run main.go CVE-2025-29927 CVE-1999-1000 -v -o
-// Output produced is in output.md
+```bash
+# Run
+go run main.go CVE-2025-29927 CVE-1999-1000 -v -o -u 'http://your-ollama-url:11434'
+# Output produced is in output.md
 
-// Build
+# Build
 go build
 ./llm4cve CVE-2025-29927 CVE-1999-1000 -v 
 ```
@@ -43,7 +45,7 @@ go build
 
 ### Future Work 
 
-- [ ] Url, Output File Path and Model as CLI Flags;
+- [x] Url, Output File Path and Model as CLI Flags;
 - [ ] Add Support for CWE, Capec;
 - [ ] Add different Database Source;
 ```
