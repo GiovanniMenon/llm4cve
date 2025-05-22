@@ -2,12 +2,15 @@ package model
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"slices"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/sirupsen/logrus"
@@ -39,24 +42,72 @@ Do not describe the JSON structure or include phrases like “this JSON represen
 
 var ollamaURL string
 
+var analysisModel string = "deepseek-r1:14b"
+
+var availableModels = []string {}
+
 func SetURL(u string) error {
 	parsedURL, err := url.ParseRequestURI(u)
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return fmt.Errorf("Invalid URL format. Please provide a valid URL.")
 	}
 
+	ollamaURL = parsedURL.String()
+	
+	err = GetAvailableModels()
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	return nil
+}
+
+func GetAvailableModels() error {
 	client := http.Client{
 		Timeout: 2 * time.Second,
 	}
 
-	resp, err := client.Get(parsedURL.String() + "/api/tags")
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Failed to connect to LLM API")
-    }
-    defer resp.Body.Close()
+	resp, err := client.Get(ollamaURL + "/api/tags")
+	if err != nil {
+		return fmt.Errorf("Failed to connect to LLM API: %w", err)
+	}
+	defer resp.Body.Close()
 
-	ollamaURL = parsedURL.String()
+	if resp.StatusCode != http.StatusOK { 
+		return fmt.Errorf("Failed to get available models: %s", resp.Status)
+	}
+
+	var result struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("error decoding response: %w", err)
+	}
+
+	availableModels = make([]string, 0, len(result.Models))
+	for _, model := range result.Models {
+		availableModels = append(availableModels, model.Name)
+	}
+
 	return nil
+}
+
+func IsModelAvailable(model string) bool {
+	if !strings.Contains(model, ":") {
+		model = model + ":latest"
+	}
+	return slices.Contains(availableModels, model)
+}
+
+func SetAnalysisModel(model string) bool {
+	if IsModelAvailable(model) {
+		analysisModel = model
+		return true
+	}
+	return false
 }
 
 func CreateLLM(model string) (*ollama.LLM, error) {
@@ -68,7 +119,7 @@ func CreateLLM(model string) (*ollama.LLM, error) {
 }
 
 func Analysis(cves []string, o bool) error {
-	llm, err := CreateLLM("deepseek-r1:14b")
+	llm, err := CreateLLM(analysisModel)
 	if err != nil {
 		return fmt.Errorf("failed to contact LLM: %w ", err)
 	}
@@ -142,7 +193,7 @@ func Analysis(cves []string, o bool) error {
 	return nil
 }
 
-func Summarizes(cve string) (string, error) {
+func Summary(cve string) (string, error) {
 	llm, err := CreateLLM("llama3.2")
 	if err != nil {
 		return "", fmt.Errorf("failed to contact LLM: %w ", err)
