@@ -3,8 +3,11 @@ package model
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/sirupsen/logrus"
@@ -34,15 +37,40 @@ Provide a clear, concise, and technically-oriented summary that includes:
 Do not describe the JSON structure or include phrases like “this JSON represents…”. Focus strictly on the CVE content.
 `
 
-const url = "http://172.20.10.8:11434"
+var ollamaURL string
+
+func SetURL(u string) error {
+	parsedURL, err := url.ParseRequestURI(u)
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return fmt.Errorf("Invalid URL format. Please provide a valid URL.")
+	}
+
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	resp, err := client.Get(parsedURL.String() + "/api/tags")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to connect to LLM API")
+    }
+    defer resp.Body.Close()
+
+	ollamaURL = parsedURL.String()
+	return nil
+}
+
+func CreateLLM(model string) (*ollama.LLM, error) {
+	llm, err := ollama.New(
+		ollama.WithModel(model),
+		ollama.WithServerURL(ollamaURL),
+	)
+	return llm, err
+}
 
 func Analysis(cves []string, o bool) error {
-	llm, err := ollama.New(
-		ollama.WithModel("deepseek-r1:14b"),
-		ollama.WithServerURL(url),
-	)
+	llm, err := CreateLLM("deepseek-r1:14b")
 	if err != nil {
-		return fmt.Errorf("failed to contact LLM: %w", err)
+		return fmt.Errorf("failed to contact LLM: %w ", err)
 	}
 
 	ctx := context.Background()
@@ -115,10 +143,7 @@ func Analysis(cves []string, o bool) error {
 }
 
 func Summarizes(cve string) (string, error) {
-	llm, err := ollama.New(
-		ollama.WithModel("llama3.2"),
-		ollama.WithServerURL(url),
-	)
+	llm, err := CreateLLM("llama3.2")
 	if err != nil {
 		return "", fmt.Errorf("failed to contact LLM: %w ", err)
 	}
