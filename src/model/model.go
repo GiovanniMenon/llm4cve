@@ -2,9 +2,15 @@ package model
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
+
+	"slices"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/sirupsen/logrus"
@@ -34,15 +40,88 @@ Provide a clear, concise, and technically-oriented summary that includes:
 Do not describe the JSON structure or include phrases like “this JSON represents…”. Focus strictly on the CVE content.
 `
 
-const url = "http://172.20.10.8:11434"
+var ollamaURL string
+
+var analysisModel string
+
+var availableModels = []string{}
+
+func SetURL(u string) error {
+	parsedURL, err := url.ParseRequestURI(u)
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return fmt.Errorf("Invalid URL format. Please provide a valid URL.")
+	}
+
+	ollamaURL = parsedURL.String()
+
+	err = GetAvailableModels()
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	return nil
+}
+
+func GetAvailableModels() error {
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	resp, err := client.Get(ollamaURL + "/api/tags")
+	if err != nil {
+		return fmt.Errorf("Failed to connect to LLM API ")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to get available models: %s ", resp.Status)
+	}
+
+	var result struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("error decoding response: %w", err)
+	}
+
+	availableModels = make([]string, 0, len(result.Models))
+	for _, model := range result.Models {
+		availableModels = append(availableModels, model.Name)
+	}
+
+	return nil
+}
+
+func IsModelAvailable(model string) bool {
+	if !strings.Contains(model, ":") {
+		model = model + ":latest"
+	}
+	return slices.Contains(availableModels, model)
+}
+
+func SetAnalysisModel(model string) bool {
+	if IsModelAvailable(model) {
+		analysisModel = model
+		return true
+	}
+	return false
+}
+
+func CreateLLM(model string) (*ollama.LLM, error) {
+	llm, err := ollama.New(
+		ollama.WithModel(model),
+		ollama.WithServerURL(ollamaURL),
+	)
+	return llm, err
+}
 
 func Analysis(cves []string, o bool) error {
-	llm, err := ollama.New(
-		ollama.WithModel("deepseek-r1:14b"),
-		ollama.WithServerURL(url),
-	)
+	llm, err := CreateLLM(analysisModel)
 	if err != nil {
-		return fmt.Errorf("failed to contact LLM: %w", err)
+		return fmt.Errorf("failed to contact LLM: %w ", err)
 	}
 
 	ctx := context.Background()
@@ -114,11 +193,8 @@ func Analysis(cves []string, o bool) error {
 	return nil
 }
 
-func Summarizes(cve string) (string, error) {
-	llm, err := ollama.New(
-		ollama.WithModel("llama3.2"),
-		ollama.WithServerURL(url),
-	)
+func Summary(cve string) (string, error) {
+	llm, err := CreateLLM("llama3.2")
 	if err != nil {
 		return "", fmt.Errorf("failed to contact LLM: %w ", err)
 	}
@@ -131,7 +207,6 @@ func Summarizes(cve string) (string, error) {
 	}
 	text := ""
 	completion, err := llm.GenerateContent(ctx, content, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
-		//fmt.Print(string(chunk))
 		text += string(chunk)
 		return nil
 	}))

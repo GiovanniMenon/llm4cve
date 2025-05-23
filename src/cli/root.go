@@ -19,6 +19,8 @@ import (
 )
 
 var (
+	OllamaURL  string
+	Model      string
 	OutputFile bool
 	verbose    bool
 	rootCmd    = &cobra.Command{
@@ -29,6 +31,13 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
 				logrus.Fatalln("Missing argument. Please provide at least one argument CVE-ID.")
+			}
+			if err := model.SetURL(OllamaURL); err != nil {
+				logrus.Fatalln(err)
+			}
+
+			if !model.SetAnalysisModel(Model) {
+				logrus.Fatalln("Model non present on Ollama. Please provide a valid model")
 			}
 
 			logrus.Println("Initialization of", strings.Join(args, ", "))
@@ -85,7 +94,7 @@ var (
 				// }
 
 				logrus.Infoln("Fetching", arg)
-				short_cve, err := model.Summarizes(string(data))
+				short_cve, err := model.Summary(string(data))
 				if err != nil {
 					logrus.Error(err)
 					continue
@@ -94,7 +103,6 @@ var (
 				cves = append(cves, string(short_cve))
 
 			}
-			logrus.Infoln("Summarizing CVEs")
 			model.Analysis(cves, OutputFile)
 		},
 	}
@@ -112,6 +120,8 @@ func init() {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display additional information")
 	rootCmd.PersistentFlags().BoolVarP(&OutputFile, "output", "o", false, "/output.md is created with the output")
+	rootCmd.PersistentFlags().StringVarP(&OllamaURL, "ollama-url", "u", "http://127.0.0.1:11434", "Use custom URL for Ollama API")
+	rootCmd.PersistentFlags().StringVarP(&Model, "model", "m", "deepseek-r1:14b", "Chose LLM model for analysis ['llama3.2','deepseek-r1:14b']")
 }
 
 func initProject() {
@@ -162,7 +172,7 @@ func initProject() {
 
 		// Unzip
 
-		logrus.Debug("Extracting CVEs database ")
+		logrus.Infoln("Extracting CVEs database")
 		unzip := exec.Command("unzip", "-o", release.Assets[0].Name)
 		if err := unzip.Run(); err != nil {
 			log.Fatalf("Error unzip Database %s ", err)
