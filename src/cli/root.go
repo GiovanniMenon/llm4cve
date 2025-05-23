@@ -21,7 +21,7 @@ import (
 var (
 	OllamaURL  string
 	Model      string
-	OutputFile bool
+	OutputFile string
 	verbose    bool
 	rootCmd    = &cobra.Command{
 		Use:   "llm4cve [CVE_ID]",
@@ -40,6 +40,12 @@ var (
 				logrus.Fatalln("Model non present on Ollama. Please provide a valid model")
 			}
 
+			if safe, err := IsSafePath(OutputFile); err != nil {
+				logrus.Fatalln("Path validation error: %w", err)
+			} else if !safe {
+				logrus.Fatalln("Unsafe output path")
+			}
+
 			logrus.Println("Initialization of", strings.Join(args, ", "))
 			var cves []string
 			for _, arg := range args {
@@ -55,7 +61,6 @@ var (
 					cvePath = "cves/" + strings.Split(arg, "-")[1] + "/" + strings.Split(arg, "-")[2][0:2] + "xxx"
 				}
 
-				//
 				err := filepath.WalkDir(cvePath, func(path string, d fs.DirEntry, err error) error {
 					if err != nil {
 						return err
@@ -103,10 +108,32 @@ var (
 				cves = append(cves, string(short_cve))
 
 			}
-			model.Analysis(cves, OutputFile)
+			err := model.Analysis(cves, OutputFile)
+			if err != nil {
+				logrus.Fatalln(err)
+			}
 		},
 	}
 )
+
+func IsSafePath(outputFile string) (bool, error) {
+	absPath, err := filepath.Abs(outputFile)
+	if err != nil {
+		return false, err
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+
+	rel, err := filepath.Rel(wd, absPath)
+	if err != nil {
+		return false, err
+	}
+
+	return !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) && rel != "..", nil
+}
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -119,7 +146,7 @@ func init() {
 	cobra.OnInitialize(initProject)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display additional information")
-	rootCmd.PersistentFlags().BoolVarP(&OutputFile, "output", "o", false, "/output.md is created with the output")
+	rootCmd.PersistentFlags().StringVarP(&OutputFile, "output", "o", "", "Save output to file. Output will be in Markdown")
 	rootCmd.PersistentFlags().StringVarP(&OllamaURL, "ollama-url", "u", "http://127.0.0.1:11434", "Use custom URL for Ollama API")
 	rootCmd.PersistentFlags().StringVarP(&Model, "model", "m", "deepseek-r1:14b", "Chose LLM model for analysis ['llama3.2','deepseek-r1:14b']")
 }

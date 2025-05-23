@@ -118,7 +118,7 @@ func CreateLLM(model string) (*ollama.LLM, error) {
 	return llm, err
 }
 
-func Analysis(cves []string, o bool) error {
+func Analysis(cves []string, outputFile string) error {
 	llm, err := CreateLLM(analysisModel)
 	if err != nil {
 		return fmt.Errorf("failed to contact LLM: %w ", err)
@@ -174,22 +174,26 @@ func Analysis(cves []string, o bool) error {
 		}
 	}
 
-	if o {
-
-		logrus.Debug("Writing output file")
-		file, err := os.Create("output.md")
-		if err != nil {
-			return fmt.Errorf("Error creating file: %w ", err)
-		}
-		defer file.Close()
-
-		_, err = file.WriteString(text)
-		if err != nil {
-			return fmt.Errorf("Error writing to file: %w ", err)
-		}
-
-		logrus.Infoln("Output file: /output.md")
+	if outputFile != "" {
+		return WriteToFile(outputFile, text)
 	}
+	return nil
+}
+
+func WriteToFile(outputFile string, text string) error {
+	logrus.Debug("Writing output file")		
+	file, err := os.Create(outputFile)
+	if err != nil {
+		return fmt.Errorf("Error creating file: %w ", err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(text)
+	if err != nil {
+		return fmt.Errorf("Error writing to file: %w ", err)
+	}
+
+	logrus.Infoln("Output file:", outputFile)
 	return nil
 }
 
