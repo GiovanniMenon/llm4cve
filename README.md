@@ -7,11 +7,11 @@ Given a CVE (or a list) the system generate a summary of their description.
 
 ```go
 // go run main.go -h
- _ _           _  _                  
-| | |_ __ ___ | || |   _____   _____ 
-| | | '_ ' _ \| || |_ / __\ \ / / _ \
-| | | | | | | |__   _| (__ \ V /  __/
-|_|_|_| |_| |_|  |_|  \___| \_/ \___|
+`  _ _           _  _                  
+  | | |_ __ ___ | || |   _____   _____ 
+  | | | '_ ' _ \| || |_ / __\ \ / / _ \
+  | | | | | | | |__   _| (__ \ V /  __/
+  |_|_|_| |_| |_|  |_|  \___| \_/ \___|`
 llm4cve is a CLI tool that analyzes and summarizes CVEs using local LLMs.
 
 Usage:
@@ -37,19 +37,22 @@ go build
 ```
 
 
-### Tool Used
+### Tools and Technologies
 
 - Langchain Framework
-- Ollama *(DeepSeek, llama 3.1)*
+- Ollama *(DeepSeek, llama 3.2)*
 - Go 
 
 ### Future Work 
 
-- [x] Url, Output File Path and Model as CLI Flags;
-- [ ] Add Support for CWE, Capec;
-- [ ] Add different Database Source;
+- [x] Custom URL for Ollama as flag
+- [ ] Custom output file as flag
+- [x] Model choice as flag
+- [ ] Add Support for CWE, Capec
+- [ ] Add different Database Source
+
+### Authors
 ```
-# Authors
 @GiovanniMenon
 @NicoloPellegrinelli
 ```
