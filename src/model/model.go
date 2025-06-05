@@ -37,7 +37,7 @@ Provide a clear, concise, and technically-oriented summary that includes:
 
     Any additional details relevant to a security analyst
 
-Do not describe the JSON structure or include phrases like “this JSON represents…”. Focus strictly on the CVE content.
+Do not describe the JSON structure or include phrases like “this JSON represents…”. Focus strictly on the CVE content. Do not invent any new fictitious data and do not hallucinate.
 `
 
 var ollamaURL string
@@ -206,7 +206,7 @@ func Summary(cve string) (string, error) {
 	ctx := context.Background()
 
 	content := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, "Your job is to summarize the given JSON vulnerability in a single continuous text string. Do not exclude or alter any data. Do not separate into paragraphs or bullet points. The result must be a flat, plain-text sentence-style summary containing every information."),
+		llms.TextParts(llms.ChatMessageTypeSystem, "Your job is to summarize the given JSON vulnerability in a single continuous text string. Do not exclude or alter any data. Do not separate into paragraphs or bullet points. The result must be a flat, plain-text sentence-style summary containing every information. Include all relevant details such as the vulnerability description, affected products, versions, mechanisms, security impact, severity level, mitigations, and any additional details relevant to a security analyst."),
 		llms.TextParts(llms.ChatMessageTypeHuman, cve),
 	}
 	text := ""
@@ -219,6 +219,8 @@ func Summary(cve string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("LLM call failed: %w ", err)
 	}
+
+	logrus.Debugln("Summary:", text)
 
 	return text, nil
 }
